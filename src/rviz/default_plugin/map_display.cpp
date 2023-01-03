@@ -239,7 +239,8 @@ MapDisplay::MapDisplay() : Display(), loaded_(false), resolution_(0.0f), width_(
   // Option values here must correspond to indices in palette_textures_ array in onInitialize() below.
   color_scheme_property_->addOption("map", 0);
   color_scheme_property_->addOption("costmap", 1);
-  color_scheme_property_->addOption("raw", 2);
+  color_scheme_property_->addOption("heatmap", 2);
+  color_scheme_property_->addOption("raw", 3);
 
   draw_under_property_ = new Property(
       "Draw Behind", false,
@@ -378,6 +379,54 @@ unsigned char* makeCostmapPalette()
   return palette;
 }
 
+unsigned char* makeHeatmapPalette()
+{
+  unsigned char* palette = OGRE_ALLOC_T(unsigned char, 256 * 4, Ogre::MEMCATEGORY_GENERAL);
+  unsigned char* palette_ptr = palette;
+
+  // green to yellow spectrum for lower values
+  for (int i = 0; i <= 50; i++)
+  {
+    unsigned char v = (255 * i) / 50;
+    *palette_ptr++ = 0 + v; // red
+    *palette_ptr++ = 255;   // green
+    *palette_ptr++ = 0;     // blue
+    *palette_ptr++ = 255;   // alpha
+  }
+  // yellow to red spectrum for higher values
+  for (int i = 51; i <= 100; i++)
+  {
+    unsigned char v = (255 * (i - 50)) / 50;
+    *palette_ptr++ = 255;     // red
+    *palette_ptr++ = 255 - v; // green
+    *palette_ptr++ = 0;       // blue
+    *palette_ptr++ = 255;     // alpha
+  }
+  // illegal positive values in white
+  for (int i = 101; i <= 127; i++)
+  {
+    *palette_ptr++ = 255; // red
+    *palette_ptr++ = 255; // green
+    *palette_ptr++ = 255; // blue
+    *palette_ptr++ = 255; // alpha
+  }
+  // illegal negative (char) values in black
+  for (int i = 128; i <= 254; i++)
+  {
+    *palette_ptr++ = 0;   // red
+    *palette_ptr++ = 0;   // green
+    *palette_ptr++ = 0;   // blue
+    *palette_ptr++ = 255; // alpha
+  }
+  // legal -1 value is tasteful blueish greenish grayish color
+  *palette_ptr++ = 0x70; // red
+  *palette_ptr++ = 0x89; // green
+  *palette_ptr++ = 0x86; // blue
+  *palette_ptr++ = 255;  // alpha
+
+  return palette;
+}
+
 unsigned char* makeRawPalette()
 {
   unsigned char* palette = OGRE_ALLOC_T(unsigned char, 256 * 4, Ogre::MEMCATEGORY_GENERAL);
@@ -413,6 +462,8 @@ void MapDisplay::onInitialize()
   palette_textures_.push_back(makePaletteTexture(makeMapPalette()));
   color_scheme_transparency_.push_back(false);
   palette_textures_.push_back(makePaletteTexture(makeCostmapPalette()));
+  color_scheme_transparency_.push_back(true);
+  palette_textures_.push_back(makePaletteTexture(makeHeatmapPalette()));
   color_scheme_transparency_.push_back(true);
   palette_textures_.push_back(makePaletteTexture(makeRawPalette()));
   color_scheme_transparency_.push_back(true);
